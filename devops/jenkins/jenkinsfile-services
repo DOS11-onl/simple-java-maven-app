@@ -79,7 +79,7 @@ pipeline {
         CHAT_ID = '-1001926338613'
         REPO_OWNER = 'DOS11-onl'
         REPO = 'simple-java-maven-app'
-        PARALLEL_EXECUTE_COUNT = 2
+        
     }
     
     stages {
@@ -130,7 +130,8 @@ pipeline {
                         apps.remove(app)
                     }
                     println ("FINISH APPS: ${apps}")
-                    buildStages = stagePrepare(apps, env.PARALLEL_EXECUTE_COUNT)
+                    Integer PARALLEL_EXECUTE_COUNT = 2
+                    buildStages = stagePrepare(apps, PARALLEL_EXECUTE_COUNT)
                 }
             }
         }
