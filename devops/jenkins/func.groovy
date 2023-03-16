@@ -1,3 +1,5 @@
+#!/usr/bin/env groovy
+
 def stagePrepare(apps, parallelExecuteCount) {
     buildStageList = []
     buildParallelMap = [:]
