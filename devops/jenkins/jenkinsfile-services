@@ -39,16 +39,16 @@ def httpRequestGet (requestURL, pass) {
         HttpURLConnection conn = (HttpURLConnection) url.openConnection()
         // conn = new URL(requestURL).openConnection()
         conn.setRequestMethod("GET")
-        conn.setRequestProperty("Accept", "json")
+        conn.setRequestProperty("Accept", "application/vnd.github+json")
         conn.setRequestProperty("Authorization", "Bearer ${pass}")
         conn.setRequestProperty("X-GitHub-Api-Version", "2022-11-28")
 
         def getRC = conn.getResponseCode()
         println ("Responce Code: ${getRC}")
         if (getRC.equals(200)) {
-            data = conn.getInputStream().getText()
-            def jsonSlurper = new JsonSlurperClassic()
-            def object = jsonSlurper.parseText(data)
+            json = conn.content.text
+            // data = conn.getInputStream().getText()
+            data = new JsonSlurperClassic().parseText(json)
         }
         // conn.connect()
         // data = conn.content.text
