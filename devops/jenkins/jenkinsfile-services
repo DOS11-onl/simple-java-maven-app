@@ -47,7 +47,7 @@ def httpRequestGet (requestURL, pass) {
         println ("Responce Code: ${getRC}")
         if (getRC.equals(200)) {
             data = conn.getInputStream().getText()
-            def jsonSlurper = new JsonSlurper()
+            def jsonSlurper = new JsonSlurperClassic()
             def object = jsonSlurper.parseText(data)
         }
         // conn.connect()
