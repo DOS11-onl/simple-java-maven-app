@@ -1,65 +1,3 @@
-def stagePrepare(apps, parallelExecuteCount) {
-    buildStageList = []
-    buildParallelMap = [:]
-    apps.eachWithIndex { app, value, i ->
-        Integer lock_id = i % parallelExecuteCount
-        println lock_id
-        buildParallelMap.put(app, stageCreate(app, value, lock_id))
-    }
-    buildStageList.add(buildParallelMap)
-    return buildStageList
-}
-
-def stageCreate (app, value, lock_id) {
-    return {
-        stage(app) {
-            lock("Build-lock-${lock_id}") {
-                dir(value.path) {
-                    sh "docker build -t ${app} -f Dockerfile ."
-                }
-            }
-        }
-    }
-}
-
-def getPrId(branch) {
-    if (branch =~ /PR-*/) {
-        prId = env.CHANGE_ID
-    } else {
-        prId = "None"
-    }
-    return prId
-}
-
-def httpRequestGet (requestURL, pass) {
-    try {
-        def url = new URL(requestURL)
-        HttpURLConnection conn = (HttpURLConnection) url.openConnection()
-        // conn = new URL(requestURL).openConnection()
-        conn.setRequestMethod("GET")
-        conn.setRequestProperty("Accept", "application/vnd.github+json")
-        conn.setRequestProperty("Authorization", "Bearer ${pass}")
-        conn.setRequestProperty("X-GitHub-Api-Version", "2022-11-28")
-
-        def getRC = conn.getResponseCode()
-        println ("Responce Code: ${getRC}")
-        if (getRC.equals(200)) {
-            data = conn.content.text
-        }
-    } catch (err) {
-        println "Failure get data from requestURL (${err.getMessage()})"
-    }
-    return data
-}
-
-def isChanged(prDiff, path) {
-    for (file in prDiff) {
-        if (file =~ path) {
-            return true
-        }
-    }
-}
-
 pipeline {
 
     agent {
@@ -86,6 +24,7 @@ pipeline {
         stage('Prepare') {
             steps {
                 script {
+                    func = load 'devops/jenkins/func.groovy'
                     println("BRANCH - ${BRANCH_NAME}")
                     println("PRID - ${env.CHANGE_ID}")
                     if (BRANCH_NAME == 'master') {
@@ -105,10 +44,10 @@ pipeline {
                 script {
                     PR_DIFF = []
                     APPS_REMOVE_LIST = []
-                    PR_ID = getPrId(env.BRANCH_NAME)
+                    PR_ID = func.getPrId(env.BRANCH_NAME)
                     requestURL="https://api.github.com/repos/${REPO_OWNER}/${REPO}/pulls/${PR_ID}/files"
                     withCredentials([usernamePassword(credentialsId: 'github_PAT', passwordVariable: 'pass', usernameVariable: 'user')]) {
-                        PR_JSON_DIFF_DATA  = httpRequestGet(requestURL, pass)
+                        PR_JSON_DIFF_DATA  = func.httpRequestGet(requestURL, pass)
                     }
 
                     PR_DIFF_DATA = readJSON text: PR_JSON_DIFF_DATA
@@ -119,7 +58,7 @@ pipeline {
 
                     // check is Changed
                     apps.each { app ->
-                        if (!isChanged(PR_DIFF, app.value.path)) {
+                        if (!func.isChanged(PR_DIFF, app.value.path)) {
                             APPS_REMOVE_LIST.add(app.key)
                             println ("Add ${app.key} service to REMOVE LIST")
                         }
@@ -131,7 +70,7 @@ pipeline {
                     }
                     println ("FINISH APPS: ${apps}")
                     Integer PARALLEL_EXECUTE_COUNT = 2
-                    buildStages = stagePrepare(apps, PARALLEL_EXECUTE_COUNT)
+                    buildStages = func.stagePrepare(apps, PARALLEL_EXECUTE_COUNT)
                 }
             }
         }
