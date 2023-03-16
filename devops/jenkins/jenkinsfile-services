@@ -123,7 +123,8 @@ pipeline {
                     // check is Changed
                     apps.each { app ->
                         if (!isChanged(PR_DIFF, app.value.path)) {
-                            APPS_REMOVE_LIST.add(app)
+                            APPS_REMOVE_LIST.add(app.key)
+                            println ("Add ${app.key} service to REMOVE LIST")
                         }
                     }
 
