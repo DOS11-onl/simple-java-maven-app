@@ -107,7 +107,7 @@ pipeline {
                     PR_ID = getPrId(env.BRANCH_NAME)
                     requestURL="https://api.github.com/repos/${REPO_OWNER}/${REPO}/pulls/${PR_ID}/files"
                     withCredentials([usernamePassword(credentialsId: 'github_PAT', passwordVariable: 'pass', usernameVariable: 'user')]) {
-                        PR_DIFF_DATA  = httpRequestGet(requestURL, pass)
+                        PR_DIFF_DATA  = readJSON text: httpRequestGet(requestURL, pass)
                     }
                     println PR_DIFF_DATA
 
