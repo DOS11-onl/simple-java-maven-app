@@ -109,9 +109,9 @@ pipeline {
                     withCredentials([usernamePassword(credentialsId: 'github_PAT', passwordVariable: 'pass', usernameVariable: 'user')]) {
                         PR_DIFF_DATA  = httpRequestGet(requestURL, pass)
                     }
+                    println PR_DIFF_DATA
 
-                    COMMIT_ID = sh(returnStdout: true, script: "git log -1").trim()
-                    DIFF = sh(returnStdout: true, script: "git diff HEAD..${COMMIT_ID}").trim()
+                   
                 }
             }
         }
@@ -192,14 +192,14 @@ pipeline {
     post { 
         always { 
             cleanWs()
-            withCredentials([string(credentialsId: TELEGRAM_CRED, variable: 'TOKEN')]) {
-                sh """
-                    curl -s -X POST https://api.telegram.org/bot${TOKEN}/sendMessage
-                    -d chat_id=${CHAT_ID}
-                    -d parse_mode=markdown
-                    -d text='*${env.JOB_NAME}* *BRANCH:* ${env.BRANCH_NAME} *BUILD:* ${currentBuild.currentResult}'
-                """
-            }
+            // withCredentials([string(credentialsId: TELEGRAM_CRED, variable: 'TOKEN')]) {
+            //     sh """
+            //         curl -s -X POST https://api.telegram.org/bot${TOKEN}/sendMessage
+            //         -d chat_id=${CHAT_ID}
+            //         -d parse_mode=markdown
+            //         -d text='*${env.JOB_NAME}* *BRANCH:* ${env.BRANCH_NAME} *BUILD:* ${currentBuild.currentResult}'
+            //     """
+            // }
         }
     }
 }
