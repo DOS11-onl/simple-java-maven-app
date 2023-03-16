@@ -111,7 +111,9 @@ pipeline {
                         PR_JSON_DIFF_DATA  = httpRequestGet(requestURL, pass)
                     }
                     println PR_JSON_DIFF_DATA
-                    println PR_JSON_DIFF_DATA.getClass()
+                    PR_JSON_DIFF_DATA.each { item ->
+                        println item.filename
+                    }
 
                     // PR_DIFF_DATA = readJSON text: "${PR_JSON_DIFF_DATA}"
                     // println PR_DIFF_DATA
