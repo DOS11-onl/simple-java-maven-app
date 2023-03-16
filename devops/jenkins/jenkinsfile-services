@@ -52,6 +52,14 @@ def httpRequestGet (requestURL, pass) {
     return data
 }
 
+def isChanged(prDiff, path) {
+    for (file in prDiff) {
+        if (file =~ path) {
+            return true
+        }
+    }
+}
+
 pipeline {
 
     agent {
@@ -89,6 +97,7 @@ pipeline {
                     // FINAL_IMAGE_NAME = "${DOCKER_REGISTRY}/hello-world:${TAG}"
                     // CONTAINER_NAME = "hello"
                     apps = readJSON file: SERVICES_FILE
+                    println ("START APPS: ${apps}")
                     buildStages = stagePrepare(apps, parallelExecuteCount)
                 }
             }
@@ -98,6 +107,7 @@ pipeline {
             steps {
                 script {
                     PR_DIFF = []
+                    APPS_REMOVE_LIST = []
                     PR_ID = getPrId(env.BRANCH_NAME)
                     requestURL="https://api.github.com/repos/${REPO_OWNER}/${REPO}/pulls/${PR_ID}/files"
                     withCredentials([usernamePassword(credentialsId: 'github_PAT', passwordVariable: 'pass', usernameVariable: 'user')]) {
@@ -108,8 +118,22 @@ pipeline {
                     PR_DIFF_DATA.each { item ->
                         PR_DIFF.add(item.filename)
                     }
-
                     println PR_DIFF
+
+                    // check is Changed
+                    apps.each { app ->
+                        if (!isChanged(PR_DIFF, app.value.path)) {
+                            APPS_REMOVE_LIST.add(app)
+                        }
+                    }
+
+                    // remove unchanged from apps
+                    APPS_REMOVE_LIST.each { app ->
+                        apps.remove(app)
+                    }
+
+                    println ("FINISH APPS: ${apps}")
+
                 }
             }
         }
