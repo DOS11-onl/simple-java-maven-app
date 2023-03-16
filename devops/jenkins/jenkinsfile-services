@@ -79,6 +79,7 @@ pipeline {
         CHAT_ID = '-1001926338613'
         REPO_OWNER = 'DOS11-onl'
         REPO = 'simple-java-maven-app'
+        PARALLEL_EXECUTE_COUNT = 2
     }
     
     stages {
@@ -92,10 +93,7 @@ pipeline {
                     } else {
                         TAG = env.CHANGE_ID
                     }
-                    Integer parallelExecuteCount = 2
-                    // IMAGE_NAME = "hello-world:${TAG}"
-                    // FINAL_IMAGE_NAME = "${DOCKER_REGISTRY}/hello-world:${TAG}"
-                    // CONTAINER_NAME = "hello"
+
                     apps = readJSON file: SERVICES_FILE
                     println ("START APPS: ${apps}")
                 }
@@ -132,7 +130,7 @@ pipeline {
                         apps.remove(app)
                     }
                     println ("FINISH APPS: ${apps}")
-                    buildStages = stagePrepare(apps, parallelExecuteCount)
+                    buildStages = stagePrepare(apps, env.PARALLEL_EXECUTE_COUNT)
                 }
             }
         }
