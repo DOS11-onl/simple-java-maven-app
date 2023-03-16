@@ -1,4 +1,4 @@
-import groovy.json.JsonSlurperClassic
+// import groovy.json.JsonSlurperClassic
 
 def stagePrepare(apps, parallelExecuteCount) {
     buildStageList = []
@@ -48,7 +48,7 @@ def httpRequestGet (requestURL, pass) {
         if (getRC.equals(200)) {
             json = conn.content.text
             // data = conn.getInputStream().getText()
-            data = new JsonSlurperClassic().parseText(json)
+            // data = new JsonSlurperClassic().parseText(json)
         }
         // conn.connect()
         // data = conn.content.text
@@ -56,7 +56,7 @@ def httpRequestGet (requestURL, pass) {
         println "Failure get data from requestURL (${err.getMessage()})"
     }
     // conn.close()
-    return data
+    return json
 }
 
 pipeline {
@@ -110,13 +110,11 @@ pipeline {
                     withCredentials([usernamePassword(credentialsId: 'github_PAT', passwordVariable: 'pass', usernameVariable: 'user')]) {
                         PR_JSON_DIFF_DATA  = httpRequestGet(requestURL, pass)
                     }
-                    println PR_JSON_DIFF_DATA
-                    PR_JSON_DIFF_DATA.each { item ->
+
+                    PR_DIFF_DATA = readJSON text: PR_JSON_DIFF_DATA
+                    PR_DIFF_DATA.each { item ->
                         println item.filename
                     }
-
-                    // PR_DIFF_DATA = readJSON text: "${PR_JSON_DIFF_DATA}"
-                    // println PR_DIFF_DATA
                 }
             }
         }
