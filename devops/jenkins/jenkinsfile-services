@@ -1,5 +1,3 @@
-// import groovy.json.JsonSlurperClassic
-
 def stagePrepare(apps, parallelExecuteCount) {
     buildStageList = []
     buildParallelMap = [:]
@@ -46,17 +44,12 @@ def httpRequestGet (requestURL, pass) {
         def getRC = conn.getResponseCode()
         println ("Responce Code: ${getRC}")
         if (getRC.equals(200)) {
-            json = conn.content.text
-            // data = conn.getInputStream().getText()
-            // data = new JsonSlurperClassic().parseText(json)
+            data = conn.content.text
         }
-        // conn.connect()
-        // data = conn.content.text
     } catch (err) {
         println "Failure get data from requestURL (${err.getMessage()})"
     }
-    // conn.close()
-    return json
+    return data
 }
 
 pipeline {
@@ -113,8 +106,10 @@ pipeline {
 
                     PR_DIFF_DATA = readJSON text: PR_JSON_DIFF_DATA
                     PR_DIFF_DATA.each { item ->
-                        println item.filename
+                        PR_DIFF.add(item.filename)
                     }
+
+                    println PR_DIFF
                 }
             }
         }
