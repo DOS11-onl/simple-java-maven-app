@@ -1,27 +1,3 @@
-def stagePrepare(apps, parallelExecuteCount) {
-    buildStageList = []
-    buildParallelMap = [:]
-    apps.eachWithIndex { app, value, i ->
-        Integer lock_id = i % parallelExecuteCount
-        println lock_id
-        buildParallelMap.put(app, stageCreate(app, value, lock_id))
-    }
-    buildStageList.add(buildParallelMap)
-    return buildStageList
-}
-
-def stageCreate (app, value, lock_id) {
-    return {
-        stage(app) {
-            lock("Build-lock-${lock_id}") {
-                dir(value.path) {
-                    sh "docker build -t ${app} -f Dockerfile ."
-                }
-            }
-        }
-    }
-}
-
 pipeline {
 
     agent {
@@ -39,12 +15,16 @@ pipeline {
         SERVICES_FILE = "devops/services.json"
         TELEGRAM_CRED = 'telegram-token'
         CHAT_ID = '-1001926338613'
+        REPO_OWNER = 'DOS11-onl'
+        REPO = 'simple-java-maven-app'
+        
     }
     
     stages {
         stage('Prepare') {
             steps {
                 script {
+                    func = load 'devops/jenkins/func.groovy'
                     println("BRANCH - ${BRANCH_NAME}")
                     println("PRID - ${env.CHANGE_ID}")
                     if (BRANCH_NAME == 'master') {
@@ -52,12 +32,45 @@ pipeline {
                     } else {
                         TAG = env.CHANGE_ID
                     }
-                    Integer parallelExecuteCount = 2
-                    // IMAGE_NAME = "hello-world:${TAG}"
-                    // FINAL_IMAGE_NAME = "${DOCKER_REGISTRY}/hello-world:${TAG}"
-                    // CONTAINER_NAME = "hello"
+
                     apps = readJSON file: SERVICES_FILE
-                    buildStages = stagePrepare(apps, parallelExecuteCount)
+                    println ("START APPS: ${apps}")
+                }
+            }
+        }
+
+        stage('Get diff') {
+            steps {
+                script {
+                    PR_DIFF = []
+                    APPS_REMOVE_LIST = []
+                    PR_ID = func.getPrId(env.BRANCH_NAME)
+                    requestURL="https://api.github.com/repos/${REPO_OWNER}/${REPO}/pulls/${PR_ID}/files"
+                    withCredentials([usernamePassword(credentialsId: 'github_PAT', passwordVariable: 'pass', usernameVariable: 'user')]) {
+                        PR_JSON_DIFF_DATA  = func.httpRequestGet(requestURL, pass)
+                    }
+
+                    PR_DIFF_DATA = readJSON text: PR_JSON_DIFF_DATA
+                    PR_DIFF_DATA.each { item ->
+                        PR_DIFF.add(item.filename)
+                    }
+                    println ("PR_DIFF: ${PR_DIFF}")
+
+                    // check is Changed
+                    apps.each { app ->
+                        if (!func.isChanged(PR_DIFF, app.value.path)) {
+                            APPS_REMOVE_LIST.add(app.key)
+                            println ("Add ${app.key} service to REMOVE LIST")
+                        }
+                    }
+
+                    // remove unchanged from apps
+                    APPS_REMOVE_LIST.each { app ->
+                        apps.remove(app)
+                    }
+                    println ("FINISH APPS: ${apps}")
+                    Integer PARALLEL_EXECUTE_COUNT = 2
+                    buildStages = func.stagePrepare(apps, PARALLEL_EXECUTE_COUNT)
                 }
             }
         }
@@ -138,14 +151,14 @@ pipeline {
     post { 
         always { 
             cleanWs()
-            withCredentials([string(credentialsId: TELEGRAM_CRED, variable: 'TOKEN')]) {
-                sh """
-                    curl -s -X POST https://api.telegram.org/bot${TOKEN}/sendMessage
-                    -d chat_id=${CHAT_ID}
-                    -d parse_mode=markdown
-                    -d text='*${env.JOB_NAME}* *BRANCH:* ${env.BRANCH_NAME} *BUILD:* ${currentBuild.currentResult}'
-                """
-            }
+            // withCredentials([string(credentialsId: TELEGRAM_CRED, variable: 'TOKEN')]) {
+            //     sh """
+            //         curl -s -X POST https://api.telegram.org/bot${TOKEN}/sendMessage
+            //         -d chat_id=${CHAT_ID}
+            //         -d parse_mode=markdown
+            //         -d text='*${env.JOB_NAME}* *BRANCH:* ${env.BRANCH_NAME} *BUILD:* ${currentBuild.currentResult}'
+            //     """
+            // }
         }
     }
 }
