@@ -98,7 +98,6 @@ pipeline {
                     // CONTAINER_NAME = "hello"
                     apps = readJSON file: SERVICES_FILE
                     println ("START APPS: ${apps}")
-                    buildStages = stagePrepare(apps, parallelExecuteCount)
                 }
             }
         }
@@ -118,7 +117,7 @@ pipeline {
                     PR_DIFF_DATA.each { item ->
                         PR_DIFF.add(item.filename)
                     }
-                    println PR_DIFF
+                    println ("PR_DIFF: ${PR_DIFF}")
 
                     // check is Changed
                     apps.each { app ->
@@ -132,9 +131,8 @@ pipeline {
                     APPS_REMOVE_LIST.each { app ->
                         apps.remove(app)
                     }
-
                     println ("FINISH APPS: ${apps}")
-
+                    buildStages = stagePrepare(apps, parallelExecuteCount)
                 }
             }
         }
